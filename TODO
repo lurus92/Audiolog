@@ -1,0 +1,8 @@
+* Fix grafica su LoginPage per schermi responsive
+* Verifica integrazione Firebase LoginScreen
+* Inserisci MainScreen
+* Verifica lettura contatti
+* Costruisci acquisizione vocale
+    * Interfaccia
+    * Logica
+* Costruisci funzioni cloud

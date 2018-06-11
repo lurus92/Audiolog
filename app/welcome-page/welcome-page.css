@@ -1,0 +1,26 @@
+.page {
+    background-color: #131313;
+    color: white;
+}
+
+.animationContainer{
+    width: 200;
+    height: 200;
+}
+
+#title{
+    font-family: 'Avenir','Helvetica', sans-serif;
+    font-size: 50;
+    height: 100; 
+}
+
+
+
+.h1{
+    color: white;
+    margin-top: 10%;
+}
+
+.h2{
+    text-align: center;
+}

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>AD_UNIT_ID_FOR_BANNER_TEST</key>
+	<string>ca-app-pub-3940256099942544/2934735716</string>
+	<key>AD_UNIT_ID_FOR_INTERSTITIAL_TEST</key>
+	<string>ca-app-pub-3940256099942544/4411468910</string>
+	<key>CLIENT_ID</key>
+	<string>853218410055-eh5aegtab85qvdhpj4uo18h6squca2uu.apps.googleusercontent.com</string>
+	<key>REVERSED_CLIENT_ID</key>
+	<string>com.googleusercontent.apps.853218410055-eh5aegtab85qvdhpj4uo18h6squca2uu</string>
+	<key>API_KEY</key>
+	<string>AIzaSyCOONR7bmOEe5iYCXtljE-m1x8NHoacEJ0</string>
+	<key>GCM_SENDER_ID</key>
+	<string>853218410055</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.sampi.audiolog</string>
+	<key>PROJECT_ID</key>
+	<string>audiolog-d6fa9</string>
+	<key>STORAGE_BUCKET</key>
+	<string>audiolog-d6fa9.appspot.com</string>
+	<key>IS_ADS_ENABLED</key>
+	<true></true>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<false></false>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:853218410055:ios:b532548076097000</string>
+	<key>DATABASE_URL</key>
+	<string>https://audiolog-d6fa9.firebaseio.com</string>
+</dict>
+</plist>

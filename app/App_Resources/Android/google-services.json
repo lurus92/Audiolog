@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "853218410055",
+    "firebase_url": "https://audiolog-d6fa9.firebaseio.com",
+    "project_id": "audiolog-d6fa9",
+    "storage_bucket": "audiolog-d6fa9.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:853218410055:android:b532548076097000",
+        "android_client_info": {
+          "package_name": "com.sampi.audiolog"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "853218410055-bnhm2fta8903meoetndra98072ejhr2a.apps.googleusercontent.com",
+          "client_type": 3
+        },
+        {
+          "client_id": "853218410055-bnhm2fta8903meoetndra98072ejhr2a.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD0M_QBHzF3rRtvJVx_h7_wxOxeN6y_mx8"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 1,
+          "other_platform_oauth_client": []
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

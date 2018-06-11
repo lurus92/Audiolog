@@ -1,0 +1,81 @@
+.action-bar{
+    background-color: #2B2B2B;
+    color: white;
+    font-family: 'Avenir';
+    
+}
+
+#main-container{
+    width: 100%;
+    height: 100%;
+    overflow: scroll;
+}
+
+#scrollscroll{
+    height: 100;
+    background-color: #131313;
+    padding-left: 10;
+}
+
+#scroll-contacts{
+    height: 100%;
+    text-align: left;
+}
+
+#contacts-container{
+    text-align: left;
+    padding-left: 10;
+    overflow: scroll;
+}
+
+#stories-container{
+    margin: 0;
+    padding-left: 5; 
+}
+
+.story-button, .contact-button, .conversation-button{
+    background-color: lightgray;
+    border-width: 3;
+    border-radius: 100;
+    margin-left: 5;
+    margin-right: 5;
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.story-button{
+    border-width: 3;    
+    width: 64;
+    height: 64;
+    border-color: red;
+}
+
+.contact-button, .conversation-button{
+    border-width: 1;        
+    margin-top: 5;
+    margin-bottom: 5;
+    width: 52;
+    height: 52;
+    border-color: gray;
+}
+
+.contact-list-element{
+    background-color: green;
+    text-align: left;
+}
+
+.h2{
+    color: red;
+    font-size: 20;
+    font-weight: 100;
+    padding-left: 10;
+    padding-top: 5;
+    padding-bottom: 2; 
+    margin-bottom: 0;
+}
+
+.h2.negative{
+    color: white;
+    background-color: #A40000;
+}

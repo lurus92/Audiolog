@@ -1,0 +1,29 @@
+
+<Page xmlns="http://schemas.nativescript.org/tns.xsd" class="page" loaded="buildDynamicUI" actionBarHidden="true"> 
+    <!--AbsoluteLayout class="" id="title-container">
+    </AbsoluteLayout-->
+
+    <AbsoluteLayout class="" id="main-container">
+
+            <StackLayout id="top-container">
+                <StackLayout id="padding-space"></StackLayout>
+                <Label text="We will send you an SMS in order to confirm your mobile phone" class="text-center" id="long-text"/>
+                <Label text="Write below your phone number" class="text-center" id="long-text"/>
+
+                <TextField text="" id="number-textfield" hint="+00 000 0000000" keyboardType="phone"/>
+                <Label text="Standard SMS rates will apply" id="small-text" class="text-center"/>
+
+            </StackLayout>
+            <Button text="SEND SMS" id="sms-button"/>
+            <StackLayout id="bottom-container">
+                <Button id="photo-button"/>
+                <Label text="Insert your name" class="text-center"  />
+                <TextField text="" id="name-textfield"/>
+
+                <Button text="START" id="start-button"/>
+                <StackLayout id="bottom-space"></StackLayout>
+            </StackLayout>
+            <Label text="AUDIOLOG" class="h1 text-center" id="title"/>
+
+    </AbsoluteLayout>
+</Page>

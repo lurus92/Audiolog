@@ -1,0 +1,8 @@
+
+<Page xmlns="http://schemas.nativescript.org/tns.xsd" class="page" actionBarHidden="true"> 
+
+    <StackLayout class="">
+        <Label text="AUDIOLOG" class="h1 text-center" id="title"/>
+        <!--GridLayout class="animationContainer"-->
+    </StackLayout>
+</Page>
