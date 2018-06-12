@@ -33,8 +33,17 @@ class UIManager{
                 var contactImage = new buttonModule.Button();
                 contactImage.className = "conversation-button";
                 contactImage.conversationId = conversationsIDArray[i];
+                contactImage.heapConversation = null;
                 contactImage.on(gestures.GestureTypes.tap, function (args) {
-                    alert("I should display messages of conversation: "+this.conversationId);
+                    console.log("I should display messages of conversation: "+this.conversationId);
+                    var heap = null; // Identifier of the last message present in the phone
+                    //backendManager.retrieveMessagesURLs(this.conversationId).then((filesArray) => playConversation(filesArray, heap));
+                    /*
+                    backendManager.retrieveMessages().then(function (localMessageURI){
+                        backendManager.retrieveMessageURLs(localMessageURI).then((filesArray) => playConversation(filesArray, heap))
+                    });*/
+
+                    backendManager.retrieveMessages(this.conversationId).then((messageURLs) => UIManager.playConversation(messageURLs, heap));
                 }, contactImage);
                 conversationList.addChild(contactImage);
                 
@@ -47,9 +56,25 @@ class UIManager{
                 //1. I have the conversation ID. I should download all the conversations not present in the device
                 //2. The last non-read message should be flagged. I should start playing that message on user tap
                 
-
             }
         })
+    }
+
+    playConversation(filesArray, heap){
+        console.log("received fileArray"+filesArray);
+        console.log("I should start playing some music now!");
+        const player = new audio.TNSPlayer();  
+
+        function playSingle(localFileArray){
+            if (localFileArray.length == 0) return;
+            const playerOptions = {
+                audioFile: filesArray[0],
+                loop: false,
+            };
+            player.playFromUrl(playerOptions).then(playSingle(localFileArray.slice(1)));
+        }
+        
+        playSingle(filesArray);
     }
 }
    

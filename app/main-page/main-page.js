@@ -9,7 +9,6 @@ firebase = require("nativescript-plugin-firebase");
 var audio = require("nativescript-audio");
 var permissions = require('nativescript-permissions');
 var fs = require('file-system');
-var audio = require("nativescript-audio");
 var colorModule = require("tns-core-modules/color");
 
 var audioPath = ""

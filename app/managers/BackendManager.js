@@ -171,11 +171,13 @@ class BackendManager{
                 console.log("Percentage complete: " + status.percentageCompleted);
             }
         }).then( (uploadedFile) => {
+                //console.log(JSON.stringify(uploadedFile));
                 console.log("Starting to build record for the message in the db");
                 this.firebase.push(
                     '/messages',
                     {
-                      'path': remotePath,
+                      'localPath': remotePath,
+                      'fullPath': uploadedFile.url,
                       'timestamp': filename,
                       'sender': senderEncodedNumber,
                       'receiver': receiverEncodedNumber
@@ -191,7 +193,8 @@ class BackendManager{
                         //I will add as a folder
                         this.firebase.setValue("/conversations/"+senderEncodedNumber+"|"+receiverEncodedNumber+"/"+messagePrimaryKey,
                         {
-                            'timestamp': filename //not really needed, but maybe useful
+                            'timestamp': filename, //not really needed, but maybe useful
+                            'fullPath': uploadedFile.url
                           }).then(function(){
                               console.log("conversation "+senderEncodedNumber+"|"+receiverEncodedNumber+" updated");
                               //Refresh UI;
@@ -206,13 +209,18 @@ class BackendManager{
         );
     }
 
+    /** 
+     *  Retrieve the conversation started by the user, or where the user is present
+     *  The method performs a query to the /conversation node, then check if the user is present inside the name of the conversation (encoded send+dest)
+     *  @return {Promise}   returnPromise:      the method returns an asyncronous executor.
+     *  @var    {Array}     userConversations:  the value returned by the promise when fullfilled. It is an array containing the IDs of conversation where the user is present
+     *  //TODO: try to return the conversations already sorted by... something. 
+     */
     retrieveConversations(){
-        var userConversations = [];
         var returnPromise = new Promise((resolve, reject) => {
             var updateCallback = function(){
-                console.log("Query performed");
+                console.log("Conversation query performed");
             }
-
             backendManager.firebase.query(
                 updateCallback,
                 "/conversations",
@@ -232,17 +240,74 @@ class BackendManager{
                         var userConversations = [];
                         for (var i=0; i<Object.keys(conversations).length; i++){
                             if (Object.keys(conversations)[i].indexOf(userManager.encodedPhoneNumber) != -1) userConversations.push(Object.keys(conversations)[i]);
-                            //FOR EACH OF THESE CONVERSATIONS, WE SHOULD RETRIEVE MESSAGES
                         }
-                        console.log("Result available: ");
                         resolve(userConversations);
                 });
         });
-        return returnPromise;
+        return returnPromise;        
+    }
+
     
+    /**
+     * Retrieve the messages of a particular conversation
+     * @param   {Array}     conversationId: the ID of conversation to consider
+     * @return  {Promise}   returnPromise: the asyncrounous executor returned by the method
+     * @var     {Array}     timestamps: un unsorted (retured sorted) array of timestamps of the messages inside a conversation
+     */
+    retrieveMessages(conversationId){
+        var returnPromise = new Promise((resolve, reject) => {
+            var updateCallback = function(){
+                console.log("Message query performed");
+            }
+            backendManager.firebase.query(
+                updateCallback,
+                "/conversations/"+conversationId,
+                {
+                    singleEvent: true,
+                    orderBy: {
+                        type: this.firebase.QueryOrderByType.CHILD,
+                        value: 'since'
+                    }
+                }
+                ).then(
+                    function(result){
+                        console.log("Second callback ok");
+                        console.log(result);
+                        //In result.value we have all the messages, with their IDs
+                        var messages = result.value;
+                        //But ID are not useful to us. We need the URLS of the messages
+                        var messageURL = [];
+                        for(var i in messages){
+                            messageURL.push(messages[i].fullPath);
+                        } /*
+                        //We have the timestamp array. We sort it
+                        timestamps.sort();
+                        //We should return a partial path to the message, that is composed by <conversationID>+"|"+filename
+                        var localMessageURI = timestamps.filter((el) => conversationId+el);
+                        console.log(localMessageURI);*/
+                        resolve(messageURL);
+                });
+        });
+        return returnPromise;  
+    }
 
-
-        
+    retrieveMessagesURLs(localMessageURI){
+        console.log("starting retrieveMessagesURLs")
+        var globalURL = [];
+        var returnPromise = new Promise((resolve, reject) => {
+        function getURL(localURI, urlArray, istance){
+            console.log("WOW I'VE GONE RECURSIVE!")
+            if (!localURI.length) resolve(urlArray);
+            istance.firebase.getDownloadURL({
+                remoteFullPath: "conversations/"+localURI[0]
+            }).then((url) => {
+                urlArray.push(url);
+                getURL(localURI.slice(1),urlArray,istance);
+            })
+        }
+        getURL(localMessageURI, globalURL, this);
+        return returnPromise;
+        });
     }
 
 
