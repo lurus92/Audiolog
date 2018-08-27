@@ -5,21 +5,21 @@
 
     <AbsoluteLayout class="" id="main-container">
 
-            <StackLayout id="top-container">
-                <StackLayout id="padding-space"></StackLayout>
-                <Label text="We will send you an SMS in order to confirm your mobile phone" class="text-center" id="long-text"/>
-                <Label text="Write below your phone number" class="text-center" id="long-text"/>
+            <FlexboxLayout id="top-container" flexDirection="column">
+                <!--StackLayout id="padding-space"></StackLayout-->
+                <Label text="We will send you an SMS in order to confirm your mobile phone" class="text-center" id="long-text" flexGrow="1"/>
+                <Label text="Write below your phone number" class="text-center" id="long-text"  flexGrow="0"/>
 
                 <TextField text="" id="number-textfield" hint="+00 000 0000000" keyboardType="phone"/>
-                <Label text="Standard SMS rates will apply" id="small-text" class="text-center"/>
+                <Label text="Standard SMS rates will apply" id="small-text" class="text-center"  flexGrow="1"/>
 
-            </StackLayout>
+            </FlexboxLayout>
             <Button text="SEND SMS" id="sms-button"/>
-            <StackLayout id="bottom-container">
+
+            <StackLayout id="bottom-container" flexDirection="column">
                 <Button id="photo-button"/>
                 <Label text="Insert your name" class="text-center"  />
-                <TextField text="" id="name-textfield"/>
-
+                <TextField text="" id="name-textfield" hint="Mario Rossi"/>
                 <Button text="START" id="start-button"/>
                 <StackLayout id="bottom-space"></StackLayout>
             </StackLayout>

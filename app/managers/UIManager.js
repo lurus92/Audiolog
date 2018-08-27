@@ -17,7 +17,26 @@ class UIManager{
     constructor(){
         this.name = "UIManager";
         this.page = null;
+        /*this.playConversation2 = function(url){
+            console.log("Should play message with url: "+url);
+            var player = new audio.TNSPlayer();  
+            var playerOptions = {
+                audioFile: url,
+                loop: false
+            };
+            player.playFromUrl(playerOptions);
+        }*/
     }
+
+    /*playConversation2(url){
+        console.log("Should play message with url: "+url);
+        var player = new audio.TNSPlayer();  
+        var playerOptions = {
+            audioFile: url,
+            loop: false
+        };
+        player.playFromUrl(playerOptions);
+    }*/
 
     refreshConversationList(){
         backendManager.retrieveConversations().then((conversationsIDArray) => {
@@ -43,7 +62,27 @@ class UIManager{
                         backendManager.retrieveMessageURLs(localMessageURI).then((filesArray) => playConversation(filesArray, heap))
                     });*/
 
-                    backendManager.retrieveMessages(this.conversationId).then((messageURLs) => UIManager.playConversation(messageURLs, heap));
+                    backendManager.retrieveMessages(this.conversationId).then((messageIDs) => {
+                        //TO DO: check with the heap.
+                        for(var i=0; i<messageIDs.length; i++){
+                            //Get downloadable URL of the message
+                            var urlToFetch = '/uploads/messages/'+this.conversationId+'|'+messageIDs[i]+".caf";
+                            backendManager.firebase.storage.getDownloadUrl({
+                                remoteFullPath: urlToFetch
+                            }).then((url) => {
+                                //PLEASE MOVE THIS FUNCTION
+                                console.log("Should play message with url: "+url);
+                                var player = new audio.TNSPlayer();  
+                                var playerOptions = {
+                                    audioFile: url,
+                                    loop: false
+                                };
+                                player.playFromUrl(playerOptions);});
+                        }
+                    }); 
+                    //=> {
+                        
+                    //}UIManager.playConversation(messageURLs, heap));
                 }, contactImage);
                 conversationList.addChild(contactImage);
                 
@@ -60,21 +99,35 @@ class UIManager{
         })
     }
 
-    playConversation(filesArray, heap){
+
+
+    async playConversation(filesArray, heap){
         console.log("received fileArray"+filesArray);
         console.log("I should start playing some music now!");
-        const player = new audio.TNSPlayer();  
-
+        var player = new audio.TNSPlayer();  
+        /*
         function playSingle(localFileArray){
             if (localFileArray.length == 0) return;
             const playerOptions = {
                 audioFile: filesArray[0],
-                loop: false,
+                loop: false
             };
             player.playFromUrl(playerOptions).then(playSingle(localFileArray.slice(1)));
         }
+        */
+
+        // NOT RECURSIVE
+        // function playSingle(localFileArray){
+        for (var i = 0; i < filesArray.length; i++){
+            var playerOptions = {
+                audioFile: filesArray[i],
+                loop: false
+            };
+            await player.playFromUrl(playerOptions);
+        }
+        //}
         
-        playSingle(filesArray);
+       // playSingle(filesArray);
     }
 }
    

@@ -63,14 +63,9 @@ function buildDynamicUI(args) {
   ratesLabel.textWrap = true;
 
 
-  console.log(args);
-
   var photoButton = view.getViewById(page, "photo-button");
-  pb = photoButton;
-  if (photoselected) photoButton.backgroundImage = profilePhotoUrl;
+  var photoButtonEnabled = false;
 
-  globalVar = null;
-  toccato = 0;
   list = new Array();
   var context = imagepicker.create({ mode: "single" });
   
@@ -84,24 +79,26 @@ function buildDynamicUI(args) {
           .then(function (selection) {
             console.log("Selection done:");
             selection.forEach(function (selected) {
-              
-                selected.getImage().then(function(imagesource){
-                    //imagesource = r;
+                console.log(selected);
+                selected.options = {
+                  width: 512 / platform.screen.mainScreen.scale,
+                  height: 512 / platform.screen.mainScreen.scale,
+                  keepAspectRatio: true
+                };
+                var source = new imageSourceModule.ImageSource();
+                source.fromAsset(selected)
+                .then((imgsrc) => {
                     var folder = fs.knownFolders.documents();
                     var path = fs.path.join(folder.path, "profile.png");
-                    var saved = imagesource.saveToFile(path, "png");
-                    profilePhotoUrl = path;
-                });
+                    var saved = imgsrc.saveToFile(path, "png");
 
-                //console.log("uri: " + selected.uri);
-                //uri = selected.uri;
-                var topmost = frameModule.topmost();
-                photoselected = true;
-                //photoButton.backgroundColor = "#3489db";
-                isFirstStart = false;
-                topmost.navigate(returnPage);
-                animateScreen();
-                
+                    profilePhotoUrl = path;
+                    if (saved) {
+                        console.log("Image saved successfully!");
+                        photoButton.backgroundImage = profilePhotoUrl;
+                    }
+                    photoselected = true;
+                });
             });
           list = selection;
           }).catch(function (e) {
@@ -110,6 +107,7 @@ function buildDynamicUI(args) {
   }
 
   photoButton.on(buttonModule.Button.tapEvent, function(){
+    if (!photoButtonEnabled) return;
     var topmost = frameModule.topmost();    
     var startPage = topmost.currentEntry;
     var context = imagepicker.create({ mode: "single" });
@@ -117,7 +115,7 @@ function buildDynamicUI(args) {
   });
 
       
-
+//FROM HERE ON, ANIMATION STUFF
     var phoneNumberTextField = view.getViewById(page, "number-textfield");
     var topLayout = view.getViewById(page, "top-container");
     var mainView = view.getViewById(page, "main-container");    
@@ -130,9 +128,9 @@ function buildDynamicUI(args) {
     absoluteLayoutModule.AbsoluteLayout.setTop(topLayout, 0);
       
 
-    //smsButton.setTop(view, topLayout.getMeasuredHeight()/2);
-    var firstStepResultalert = null;
     smsButton.on(buttonModule.Button.tapEvent, function(event){
+        //Dismiss keyboard
+        phoneNumberTextField.dismissSoftInput();
         phoneNumber = phoneNumberTextField.text; 
         if (!phoneNumber) {
           alert("Please insert a valid phone number");
@@ -162,6 +160,7 @@ function buildDynamicUI(args) {
       animationSet = new animationModule.Animation(definitions);
       animationSet.play().then(function () {
         console.log("Animation finished!");
+        photoButtonEnabled = true;
         })
           .catch(function (e) {
             console.log(e.message);
@@ -178,6 +177,7 @@ function buildDynamicUI(args) {
       userManager.name = nameTextField.text;
 
       //If a photo has been selected, we will upload it.
+      //TODO: Insert loading spinner
       if (photoselected){
         backendManager.uploadProfPic(profilePhotoUrl, function(){
           backendManager.finaliseRegistration(navigationManager.navigateToMainScreen);

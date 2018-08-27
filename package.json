@@ -9,12 +9,12 @@
       "version": "4.0.1"
     },
     "tns-ios": {
-      "version": "4.0.1"
+      "version": "4.2.0"
     }
   },
   "dependencies": {
     "crypto-js": "^3.0.0",
-    "nativescript-audio": "~3.0.0",
+    "nativescript-audio": "^4.3.5",
     "nativescript-contacts": "^1.5.4",
     "nativescript-imagepicker": "^6.0.2",
     "nativescript-permissions": "^1.2.3",

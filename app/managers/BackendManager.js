@@ -1,3 +1,4 @@
+var fs = require("file-system");
 
 class BackendManager{   
     
@@ -59,7 +60,7 @@ class BackendManager{
 
     uploadProfPic(profilePhotoUrl, callback){
         // now upload the file with either of the options below:
-        this.firebase.uploadFile({
+        this.firebase.storage.uploadFile({
             // optional, can also be passed during init() as 'storageBucket' param so we can cache it (find it in the Firebase console)
             //bucket: 'gs://izwly-c6b98.appspot.com',
             // the full path of the file in your Firebase storage (folders will be created)
@@ -73,11 +74,11 @@ class BackendManager{
                 console.log("Uploaded fraction: " + status.fractionCompleted);
                 console.log("Percentage complete: " + status.percentageCompleted);
             }
-        }).then(
-            function (uploadedFile) {
+        }).then( (uploadedFile) => {
                 this.firebase.updateProfile({
                     photoURL: uploadedFile.url
-                }).then(callback);
+                });
+                callback();
             },
             function (error) {
             console.log("File upload error: " + error);
@@ -154,11 +155,11 @@ class BackendManager{
         console.log("senderEncodedNumber: "+senderEncodedNumber);
         //I should upload now the caf audio message
         //I will store the file in uploads/messages/<sender>|<receiver>|<timestamp> 
-        var remotePath = "uploads/messages/"+senderEncodedNumber+"|"+receiverEncodedNumber+"|"+filename;
+        var remotePath = "uploads/messages/"+senderEncodedNumber+"|"+receiverEncodedNumber+"|"+filename+".caf";
         console.log("remotePath "+remotePath);
         //File System Module is needed
         var fs = require('file-system');
-        this.firebase.uploadFile({
+        this.firebase.storage.uploadFile({
             // the full path of the file in your Firebase storage (folders will be created)
             remoteFullPath: remotePath,
             // option 1: a file-system module File object
@@ -177,7 +178,6 @@ class BackendManager{
                     '/messages',
                     {
                       'localPath': remotePath,
-                      'fullPath': uploadedFile.url,
                       'timestamp': filename,
                       'sender': senderEncodedNumber,
                       'receiver': receiverEncodedNumber
@@ -269,23 +269,29 @@ class BackendManager{
                         value: 'since'
                     }
                 }
-                ).then(
-                    function(result){
+                ).then((result) => {
                         console.log("Second callback ok");
                         console.log(result);
                         //In result.value we have all the messages, with their IDs
                         var messages = result.value;
                         //But ID are not useful to us. We need the URLS of the messages
-                        var messageURL = [];
+                        var messageURL = []; //TO DELETE
+                        var messageTS = [];
                         for(var i in messages){
-                            messageURL.push(messages[i].fullPath);
-                        } /*
+                            if(messages[i].fullPath)
+                                messageURL.push(messages[i].fullPath);
+                        }
+                        for(var i in messages){
+                            if(messages[i].timestamp)
+                                messageTS.push(messages[i].timestamp);
+                        }  /*
                         //We have the timestamp array. We sort it
                         timestamps.sort();
                         //We should return a partial path to the message, that is composed by <conversationID>+"|"+filename
                         var localMessageURI = timestamps.filter((el) => conversationId+el);
                         console.log(localMessageURI);*/
-                        resolve(messageURL);
+                        console.log("finishing promise and ready to return");
+                        resolve(messageTS);
                 });
         });
         return returnPromise;  
