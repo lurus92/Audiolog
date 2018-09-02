@@ -86,6 +86,8 @@ function buildDynamicUI(args) {
         
     var page = args.object;
     UIManager.page = page;
+    //We should eliminate the bottom white bar in iPhone X
+    if (app.ios && app.ios.window.safeAreaInsets) page.marginBottom = -1 * app.ios.window.safeAreaInsets.bottom;
     buildStories(page);
     UIManager.refreshConversationList();
     buildContactList(page);
@@ -119,34 +121,105 @@ function buildStories (page){
     });
 }*/
 
+/**
+ * Build the contact list TODO: move to UIManager
+ * 
+ * @param  {} page
+ */
 function buildContactList(page){
     var contactsContainer = view.getViewById(page, "contacts-container");
     var contactFields = ['name','phoneNumbers'];
     contacts.getAllContacts(contactFields).then(function(args){
         if (!args.data) console.log("No contacts!");   //TODO: improve this
         console.log("Found "+args.data.length+" contacts");
-        // Iterate over all contacts
-        for (var i=0; i<args.data.length; i++){  //TODO: Check if args.data exists
+        // We are iterating over all contacts and building the list
+        for (var i=0; i<args.data.length; i++){  
+            //Some sanity checks
             if(typeof(args.data[i])=="undefined") continue;
             if(typeof(args.data[i].phoneNumbers) == "undefined") continue;
             if(typeof(args.data[i].phoneNumbers[0]) == "undefined") continue;
 
-            //Build list UI
+            //Build list item UI
             var StackLayout = require("ui/layouts/stack-layout").StackLayout;
             var contactListElement = new StackLayout();
             contactListElement.orientation = "horizontal";
             var nameLabel = new labelModule.Label()
-            var name = JSON.stringify(args.data[i].name)
+            //var name = JSON.stringify(args.data[i].name)
             nameLabel.text = buildNameFromJSON(args.data[i].name);          //TODO: Improve buildNamFromJSON
 
             var contactImage = new buttonModule.Button();                //TODO: all these attributes should be of the list element
             contactListElement.name = JSON.stringify(args.data[i].name);
+            contactListElement.className = "contact-list-element";
             contactImage.className = "contact-button";
             contactListElement.phoneNumber = args.data[i].phoneNumbers[0].value;
+            //DEBUG: we're coloring on yellow the items that have not an international number
             if (contactListElement.phoneNumber[0] != "+") 
                 contactListElement.backgroundColor = new colorModule.Color("yellow");
             contactListElement.presentInApp = null;
             var recordedStarted = false;
+
+    /********************NEW LOGIC HERE********************
+                 * If the user performs
+                 * - A SINGLE TAP
+                 *      - list item get selected
+                 *      - a conversation object, that will be sent to Firebase, is being built
+                 *      - the startRecording button is displayed
+                 * - A LONG TAP
+                 *      - A recording will start immediately 
+                 * - A RELEASE AFTER A LONG TAP
+                 *      - The recording will be stopped and be sent to Firebase
+                
+*/
+
+            preConversationObj = {};
+            preConversationObj.receivers = [];
+            //LET'S BUILD A MORE SOPHISTICATED LISTENER
+            contactListElement.on("tap, doubleTap, longPress", function (args) {
+                switch (args.eventName) {
+                    case "tap":{
+                        if (audioManager.isRecording){
+                            //IT IS CORRECT TAP? FIXME:
+                            //If we're recording, we should stop and send everything to Firebase
+                            //audioManager.stopRecordingAndSend();
+                            stopRecordingAndSend(this);
+                            audioManager.isRecording = false;
+                            audioPath = ""; 
+                        }else{
+                            //We're not recording, first tap: select. If contact is already selected 
+                            if (!this.selected){
+                                this.backgroundColor = new colorModule.Color("green");
+                                preConversationObj.receivers.push(this.phoneNumber);
+                                this.selected = true;
+                                //If the number of selected numbers is more than one, we should visualize the recording overlay
+                                if (preConversationObj.receivers.length > 0) UIManager.showRecordingOverlay(preConversationObj.receivers.length);
+                            }else{
+                                //Deselect item
+                                this.backgroundColor = new colorModule.Color("white");
+                                preConversationObj.receivers.pop(this.phoneNumber);  
+                                if (preConversationObj.receivers.length == 0) UIManager.hideRecordingOverlay();
+                                else  UIManager.showRecordingOverlay(preConversationObj.receivers.length);
+                                this.selected = false;                 
+                            }
+
+                        }
+                    }
+                        
+                        break;
+                    case "longPress":{
+                        if (audioManager.isRecording) return;
+                        audioManager.isRecording = true;
+                        recordedStarted = true; //TODO: delete for the previous
+                        initiateRecording(this);
+
+                    }
+                
+                    default:
+                        break;
+                }
+                console.log("Event: " + args.eventName + ", sender: " + args.object);
+            },contactListElement);
+            
+            /*
             contactListElement.on(gestures.GestureTypes.longPress, function (args) {
                 //A contact list element has been tapped
                 //If the user has started to tap the element, we should start a recording
@@ -165,6 +238,7 @@ function buildContactList(page){
 
                // startConversation(this);
             },contactListElement);
+            */
 
             /*
             contactListElement.on(gestures.GestureTypes.tap, function (args) {

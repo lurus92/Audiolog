@@ -10,12 +10,15 @@ var backendManagerModule = require("./managers/BackendManager.js");
 var navigationManagerModule = require("./managers/NavigationManager.js");
 var userManagerModule = require("./managers/UserManager.js");
 var UIManagerModule = require("./managers/UIManager.js");
+var audioManagerModule = require("./managers/AudioManager.js");
+
 
 backendManager = new backendManagerModule();
 backendManager.initFirebase();
 navigationManager = new navigationManagerModule();
 userManager = new userManagerModule();
 UIManager = new UIManagerModule();
+audioManager = new audioManagerModule();
 
 
 //application.start({ moduleName: "main-page" });

@@ -10,26 +10,42 @@ https://docs.nativescript.org/ui/components.
     http://docs.nativescript.org/ui/action-bar
     -->
     <Page.actionBar>
-        <ActionBar title="AUDIOLOG" class="action-bar">
+        <ActionBar title="AUDIOLOG" id="action-bar">
         </ActionBar>
     </Page.actionBar>
-
-    <StackLayout id="main-container">
-        <ScrollView orientation="horizontal" id="scrollscroll"> 
-            <StackLayout id="stories-container" orientation="horizontal">
+    <AbsoluteLayout id="screen">
+        <AbsoluteLayout id="view">
+            <StackLayout id="main-container">
+                <ScrollView orientation="horizontal" id="scrollscroll"> 
+                    <StackLayout id="stories-container" orientation="horizontal">
+                    </StackLayout>
+                </ScrollView>
+                <StackLayout id="conversation-container">
+                    <Label text="Conversations" class="h2"/>
+                    <WrapLayout id="conversation-list">
+                    </WrapLayout>
+                </StackLayout>
+                <StackLayout id="contacts-section">
+                    <Label text="Contacts" class="h2"/>
+                    <ScrollView orientation="vertical" id="scroll-contacts"> 
+                        <WrapLayout id="contacts-container" orientation="vertical" style="text-align: left;">
+                        </WrapLayout>
+                    </ScrollView>
+                </StackLayout>
             </StackLayout>
-        </ScrollView>
-        <StackLayout id="conversation-container">
-            <Label text="Conversations" class="h2"/>
-            <WrapLayout id="conversation-list">
-            </WrapLayout>
-        </StackLayout>
-        <StackLayout id="contacts-section">
-            <Label text="Contacts" class="h2"/>
-            <ScrollView orientation="vertical" id="scroll-contacts"> 
-                <WrapLayout id="contacts-container" orientation="vertical" style="text-align: left;">
-                </WrapLayout>
-            </ScrollView>
-        </StackLayout>
-    </StackLayout>
+            <StackLayout id="bottom-bar">
+                    <Label id="bottom-bar-text"/>
+            </StackLayout>
+        </AbsoluteLayout>
+        <Button id="recorder-button"/>
+        <AbsoluteLayout id="overlay">
+            <Label text="NOW RECORDING" id="overlay-title"/>
+            <StackLayout id="filter-selector">
+                <Button id="close-selector" text="close"/>
+                <Label text="This is the prototype of filter selector"/>
+            </StackLayout>
+        </AbsoluteLayout>
+    </AbsoluteLayout>
+
+
 </Page>

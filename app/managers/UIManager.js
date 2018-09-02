@@ -10,6 +10,13 @@ var permissions = require('nativescript-permissions');
 var fs = require('file-system');
 var audio = require("nativescript-audio");
 var colorModule = require("tns-core-modules/color");
+var platform = require("platform");
+var absoluteLayoutModule = require("tns-core-modules/ui/layouts/absolute-layout");
+var view = require("ui/core/view");
+var blurModule = require('nativescript-blur');
+var blur = new blurModule.Blur(true);
+
+
 
 
 class UIManager{   
@@ -17,6 +24,11 @@ class UIManager{
     constructor(){
         this.name = "UIManager";
         this.page = null;
+        this.screenWidth = platform.screen.mainScreen.widthDIPs;
+        this.screenHeight = platform.screen.mainScreen.heightDIPs;
+        this.density = platform.screen.mainScreen.scale;
+        this.bottomExpandedForIPhoneX = false;
+        this.overlayActivated = false;
         /*this.playConversation2 = function(url){
             console.log("Should play message with url: "+url);
             var player = new audio.TNSPlayer();  
@@ -128,6 +140,125 @@ class UIManager{
         //}
         
        // playSingle(filesArray);
+    }
+
+    /**
+     * @param  {Object} element: graphical element where the recorder button should be placed. If null, default position
+     */
+    showRecordingOverlay(counter, element){
+        if (!element){
+
+            this.recordingOverlayShown = true;
+            // Should display our recorder button in the default position and the selection of users
+            var actionBar = view.getViewById(this.page, "action-bar");
+            var bottomBar = view.getViewById(this.page, "bottom-bar");
+            var bottomPaddingIphoneX = 0;
+            if (app.ios && app.ios.window.safeAreaInsets){
+                bottomPaddingIphoneX = app.ios.window.safeAreaInsets.bottom;
+                if (!this.bottomExpandedForIPhoneX){
+                    bottomBar.height = bottomBar.height + bottomPaddingIphoneX;
+                    this.bottomExpandedForIPhoneX = true;
+                }
+            }
+           
+            absoluteLayoutModule.AbsoluteLayout.setTop(bottomBar, this.screenHeight - bottomBar.height - actionBar.getMeasuredHeight() + bottomPaddingIphoneX + 10);
+            if (app.ios && app.ios.window.safeAreaInsets && !bottomBar.expandedForIPhoneX){
+                bottomBar.height = bottomBar.height + app.ios.window.safeAreaInsets.bottom;
+                bottomBar.expandedForIPhoneX = true;
+            }
+            var bottomBarText = view.getViewById(this.page, "bottom-bar-text");
+            bottomBarText.text = counter + " persons selected";
+            bottomBar.visibility = "visible";
+
+            var recorderButton = view.getViewById(this.page, "recorder-button");
+            absoluteLayoutModule.AbsoluteLayout.setLeft(recorderButton, this.screenWidth - recorderButton.width - 16);
+            absoluteLayoutModule.AbsoluteLayout.setTop(recorderButton, bottomBar.top - recorderButton.height - 5);
+            recorderButton.visibility = "visible";
+
+            //ACTION TO THE RECORDER BUTTON
+            var prevDeltaX;
+            var prevDeltaY;
+            var initialXPosition = recorderButton.left;
+            var initialYPosition = recorderButton.top;
+            var overlayFilterSelector = view.getViewById(this.page, "filter-selector");
+
+            recorderButton.on("pan", (args) => {
+                if (args.state == 1){
+                    prevDeltaX = 0;
+                    prevDeltaY = 0;
+                    //Set up first position of the overlay filter selector and its visibility
+                    overlayFilterSelector.top = this.screenHeight - 20;
+                    overlayFilterSelector.visibility = "visible";
+                }else if (args.state === 2) // panning
+                {
+                  recorderButton.translateX += (args.deltaX/this.density - prevDeltaX);
+                  recorderButton.translateY += (args.deltaY/this.density - prevDeltaY);
+                  overlayFilterSelector.translateY += (args.deltaY/this.density - prevDeltaY);
+                  if ((-1 * overlayFilterSelector.translateY) >= (this.screenHeight * 30 /100)){
+                    console.log("Should set new position for the overlay");
+                    this.overlayActivated = true;
+                    var closeOverlayButton = view.getViewById(this.page, "close-selector");
+                    closeOverlayButton.visibility = "visible";
+                    closeOverlayButton.on("tap", (args) => {
+                        blur.off("view");
+                        this.page.getViewById("view").isBlurred = false;
+                        overlay.visibility = "collapse";
+                    })
+                  }
+                  prevDeltaX = args.deltaX/this.density;
+                  prevDeltaY = args.deltaY/this.density;
+                }
+                else if (args.state === 3) // up
+                {
+                    console.log("shoud reset button position");
+                    recorderButton.visibility = "collapse";
+                    recorderButton.translateX = 0;
+                    recorderButton.translateY = 0;
+
+              
+                }
+                //this.top = this.top + args.deltaY;
+                //this.left = this.left + args.deltaX;
+                //console.log("Pan delta: [" + args.deltaX + ", " + args.deltaY + "] state: " + args.state);
+            }, recorderButton);
+            var overlay = view.getViewById(this.page, "overlay");
+
+            recorderButton.on("longPress", (args) => {
+                //Should happen only one time
+                //console.log("longPress detected");
+                if (!this.page.getViewById("view").isBlurred){
+                    //Should blur something
+                    blur.on(this.page.getViewById("view"), 'view', 0, 'extraLight');
+                    this.page.getViewById("view").isBlurred = true;
+                    //Should display overlay
+                    overlay.visibility = "visible";
+                    //Should play sound and start recording
+                    audioManager.initializeWithFile("~/audio/recEffect.wav");
+                    audioManager.play()
+                        .catch((err) => console.log(err))
+                        .then(() => console.log("ready to record"));
+                }    
+                if (this.page.getViewById("view").isBlurred && args.ios.state == 3 && !this.overlayActivated){
+                    blur.off("view");
+                    this.page.getViewById("view").isBlurred = false;
+                    overlay.visibility = "collapse";
+                }
+ 
+
+            },this);
+
+
+
+        }
+        console.log("Calm down! Still to be developed");
+    }
+    hideRecordingOverlay(){
+        var recorderButton = view.getViewById(this.page, "recorder-button");
+        recorderButton.visibility = "collapse";
+        var bottomBar = view.getViewById(this.page, "bottom-bar");
+        bottomBar.visibility = "collapse";
+
+
     }
 }
    

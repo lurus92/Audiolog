@@ -1,4 +1,4 @@
-.action-bar{
+#action-bar{
     background-color: #2B2B2B;
     color: white;
     font-family: 'Avenir';
@@ -11,10 +11,27 @@
     overflow: scroll;
 }
 
+#view, #screen{
+    width: 100%;
+    height: 100%;  
+}
+
 #scrollscroll{
     height: 100;
     background-color: #131313;
     padding-left: 10;
+}
+
+#bottom-bar{
+    background-color: #F9F9F9;
+    height: 56;
+    width: 100%;
+    visibility: collapse;
+    padding: 10;
+}
+
+#view{
+    height: 100%;
 }
 
 #scroll-contacts{
@@ -24,8 +41,11 @@
 
 #contacts-container{
     text-align: left;
-    padding-left: 10;
     overflow: scroll;
+}
+
+.contact-list-element{
+    padding-left: 10;
 }
 
 #stories-container{
@@ -61,7 +81,6 @@
 }
 
 .contact-list-element{
-    background-color: green;
     text-align: left;
 }
 
@@ -78,4 +97,42 @@
 .h2.negative{
     color: white;
     background-color: #A40000;
+}
+
+#recorder-button{
+    width: 56;
+    height: 56;
+    border-radius: 56;
+    background-color: red;
+    visibility: collapse;
+}
+
+#overlay{
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    visibility: collapse;
+}
+
+#overlay-title{
+    width: 100%;
+    text-align: center;
+    top: 30%;
+    color: red;
+    font-size: 20;
+}
+
+#filter-selector{
+    width: 100%;
+    height: 50%;
+    background-color: white;
+    padding: 20;
+    border-radius: 20;
+    visibility: collapse;
+}
+
+
+#close-selector{
+    visibility: collapse;
 }

@@ -9,6 +9,9 @@ android {
   defaultConfig {  
     generatedDensities = []
     applicationId = "com.sampi.audiolog" 
+
+    renderscriptTargetApi 25
+    renderscriptSupportModeEnabled true
     
     //override supported platforms
     // ndk {
