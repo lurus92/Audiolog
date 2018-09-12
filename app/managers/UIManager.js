@@ -28,7 +28,7 @@ class UIManager{
         this.screenHeight = platform.screen.mainScreen.heightDIPs;
         this.density = platform.screen.mainScreen.scale;
         this.bottomExpandedForIPhoneX = false;
-        this.overlayActivated = false;
+        this.filterOpened = false;
         /*this.playConversation2 = function(url){
             console.log("Should play message with url: "+url);
             var player = new audio.TNSPlayer();  
@@ -112,7 +112,7 @@ class UIManager{
     }
 
 
-
+    //TODO: SHOULD REMOVE FROM HERE AND GO TO RECORDERMANAGER
     async playConversation(filesArray, heap){
         console.log("received fileArray"+filesArray);
         console.log("I should start playing some music now!");
@@ -196,7 +196,7 @@ class UIManager{
                   overlayFilterSelector.translateY += (args.deltaY/this.density - prevDeltaY);
                   if ((-1 * overlayFilterSelector.translateY) >= (this.screenHeight * 30 /100)){
                     console.log("Should set new position for the overlay");
-                    this.overlayActivated = true;
+                    this.filterOpened = true;
                     var closeOverlayButton = view.getViewById(this.page, "close-selector");
                     closeOverlayButton.visibility = "visible";
                     closeOverlayButton.on("tap", (args) => {
@@ -223,10 +223,11 @@ class UIManager{
             }, recorderButton);
             var overlay = view.getViewById(this.page, "overlay");
 
+            //FIXME: iOS DEPENDANT!!! HOW TO APPLY ALSO TO ANDROID 
             recorderButton.on("longPress", (args) => {
-                //Should happen only one time
-                //console.log("longPress detected");
-                if (!this.page.getViewById("view").isBlurred){
+                //Should happen only one time, when the touch begin (args.ios.state = 1)
+                //console.log("longPress detected with args.ios.state: "+args.ios.state);
+                if (!this.page.getViewById("view").isBlurred && args.ios.state == 1){
                     //Should blur something
                     blur.on(this.page.getViewById("view"), 'view', 0, 'extraLight');
                     this.page.getViewById("view").isBlurred = true;
@@ -236,15 +237,23 @@ class UIManager{
                     audioManager.initializeWithFile("~/audio/recEffect.wav");
                     audioManager.play()
                         .catch((err) => console.log(err))
-                        .then(() => console.log("ready to record"));
+                        .then(() => {
+                            console.log("UIManager > Ready to record, passing control to AudioManager")
+                            audioManager.record();
+                        });
+
                 }    
-                if (this.page.getViewById("view").isBlurred && args.ios.state == 3 && !this.overlayActivated){
+                if (this.page.getViewById("view").isBlurred && args.ios.state == 3 && !this.filterOpened){
+                    console.log("UIManager > Button released, should stop recording. Passing control to AudioManager");
+                    audioManager.stopRecording().then(() => {
+                        console.log("UIManager > Restored control from AudioManager. Recording Stopped. Starting to send message to the server, passing control to BackendManager")
+                        backendManager.sendMessageNEW(audioManager.audioPath);
+                    });
+                    console.log("UIManager > Button released, should update UI.");
                     blur.off("view");
                     this.page.getViewById("view").isBlurred = false;
                     overlay.visibility = "collapse";
                 }
- 
-
             },this);
 
 

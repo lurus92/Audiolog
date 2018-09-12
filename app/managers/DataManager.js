@@ -8,6 +8,7 @@ class DataManager{
     
     constructor(){
         this.currentUser = "";
+        this.audioFolder = fs.knownFolders.currentApp().getFolder("audio");
     }
 
     

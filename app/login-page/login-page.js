@@ -15,6 +15,11 @@ var CryptoJS = require("crypto-js");
 var userID = null;
 var isFirstStart = true;
 
+//Phone number utilities, documentation here: https://github.com/ruimarinho/google-libphoneNumber
+const PNF = require('google-libphoneNumber').PhoneNumberFormat;
+const phoneUtil = require('google-libphoneNumber').PhoneNumberUtil.getInstance();
+
+
 firebase = require("nativescript-plugin-firebase");
 WIDTH = platform.screen.mainScreen.widthDIPs
 HEIGHT = platform.screen.mainScreen.heightDIPs
@@ -55,7 +60,7 @@ pb = null;
 //#region Main UI builder. This is the entry point of this script
 function buildDynamicUI(args) {
     
-  var emulator = true; //Change this if you want to build this in production
+  var emulator = true; //Change this if you want to build this in production (login by telephone enabled)
   page = args.object;
   var infoLabel = view.getViewById(page, "long-text");
   infoLabel.textWrap = true;
@@ -131,19 +136,25 @@ function buildDynamicUI(args) {
     smsButton.on(buttonModule.Button.tapEvent, function(event){
         //Dismiss keyboard
         phoneNumberTextField.dismissSoftInput();
-        phoneNumber = phoneNumberTextField.text; 
-        if (!phoneNumber) {
+        if (!phoneNumberTextField.text){
           alert("Please insert a valid phone number");
           return;
         }
-        if (phoneNumber[0]!='+'){
-          alert("Please insert a phone number in international format, that starts with +");
-          return;
+        //TODO: use UserManager Funcitons
+        var phoneNumber = phoneUtil.parseAndKeepRawInput(phoneNumberTextField.text, userManager.defaultLocale);
+        console.log("Is possible Number: "+phoneUtil.isPossibleNumber(phoneNumber));
+        console.log("Is valid Number: "+phoneUtil.isValidNumber(phoneNumber));
+        console.log("Is valid Number for locale: "+userManager.defaultLocale+": "+phoneUtil.isValidNumberForRegion(phoneNumber, userManager.defaultLocale));
+        userManager.phoneNumber = phoneUtil.format(phoneNumber, PNF.E164)
+
+        if (phoneUtil.isPossibleNumber(phoneNumber)&&phoneUtil.isValidNumber(phoneNumber)&&phoneUtil.isValidNumberForRegion(phoneNumber, userManager.defaultLocale)){
+          userManager.encodedPhoneNumber = backendManager.encodePhone(userManager.phoneNumber);
+          if (!emulator) backendManager.loginPhone(userManager.phoneNumber, animateScreen)
+             else backendManager.loginAnonymous(animateScreen);
+        }else{
+          alert("Problems with your phone number!"); 
         }
-        userManager.phoneNumber = phoneNumber;
-        userManager.encodedPhoneNumber = backendManager.encodePhone(phoneNumber);
-        if (!emulator) backendManager.loginPhone(phoneNumber, animateScreen)
-        else backendManager.loginAnonymous(animateScreen);
+
         
     });
 

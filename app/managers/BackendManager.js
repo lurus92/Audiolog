@@ -1,5 +1,6 @@
 var fs = require("file-system");
 
+
 class BackendManager{   
     
     constructor(){
@@ -209,6 +210,80 @@ class BackendManager{
         );
     }
 
+
+     /**
+     * Function that send a message (V2)
+     * The new function differs from the previous because it needs a Conversation Manager, and will be able to build conversation with multiple persons 
+     * @param  {string} messagePath: local path in the phone for the message (caf format) that should be sent
+     */
+    sendMessageNEW(messagePath, conversationID){
+        //We assume here that the message has been recorded.
+        //First of all, we should understand if we can send an SMS to persons without the app and adjust the receivers accordingly
+        this.checkIfUsersExist().then( () => {
+            console.log("Starting to send a message with a new incredible function");
+            var filename = messagePath.split("/")[messagePath.split("/").length - 1].split(".")[0];   //timestamp of the audio
+            //TODO: To prevent conflicts, add the uid to the filename
+            console.log("filename: "+filename);    
+            var remotePath = "uploads/messages/"+filename+".caf"; //TODO: understand why CAF and not mp3
+            this.firebase.storage.uploadFile({
+                // the full path of the file in your Firebase storage (folders will be created)
+                remoteFullPath: remotePath,
+                // option 1: a file-system module File object
+                localFile: fs.File.fromPath(messagePath),
+                // option 2: a full file path (ignored if 'localFile' is set)
+                localFullPath: messagePath,
+                // get notified of file upload progress
+                onProgress: function(status) {
+                // console.log("Uploaded fraction: " + status.fractionCompleted);
+                    console.log("Percentage complete: " + status.percentageCompleted);
+                }
+            }).then( (uploadedFile) => {
+                console.log(JSON.stringify(uploadedFile));
+                console.log("Starting to build record for the message in the db");
+                this.firebase.push(
+                    '/messages',
+                    {
+                    'localPath': remotePath,
+                    'timestamp': filename,
+                    }
+                ).then ( (messageRecord) => {
+                    console.log("starting to build the conversation record");
+                    var messagePrimaryKey = messageRecord.key;
+                    //NOW: If a conversationID is present, I can directly store the message in the conversation
+                    //Otherwise, I should create a new conversation
+
+                    if(!conversationID){
+                        this.firebase.push(
+                            "/conversations",
+                            {
+                                'messages' : messagePrimaryKey,
+                                'users': userManager.id + "|" + conversationManager.stringifyPartecipants()  //TODO: ALL
+                            }
+                        ).then( (result) => {
+                            console.log("new conversation created with id: "+result.key);
+                            UIManager.refreshConversationList();
+                        });
+                    }else{
+                        //Should update messages. First we download it
+                        this.firebase.getValue("/conversations/"+conversationID).then( (result) => {
+                            //Now I should write the new value
+                            this.firebase.setValue("/conversations/"+conversationID,
+                            {
+                                'messages': result.messages + "|" + messagePrimaryKey,
+                                'users' : result.users
+                            }).then((result => {
+                                console.log("pre-existing conversation updated");
+                                UIManager.refreshConversationList();
+                            }))
+                        })
+                        
+                    }
+
+                })
+        });
+    });
+    }
+
     /** 
      *  Retrieve the conversation started by the user, or where the user is present
      *  The method performs a query to the /conversation node, then check if the user is present inside the name of the conversation (encoded send+dest)
@@ -322,7 +397,7 @@ class BackendManager{
 
     }*/
     
-    /**
+    /** TODO: Move to USER MANAGER
      * Encode the phone number
      * 
      * @param  {string} phoneNumber
@@ -337,7 +412,114 @@ class BackendManager{
         return CryptoJS.SHA256(phoneNumber, "audiolog").toString();
     }
    
-   }
+
+    checkIfUsersExist(){
+        console.log("BackendManager > starting to check if user exist");
+        var userQueryPromises = [];
+        for (var i = 0; i<conversationManager.partecipants.length; i++){
+            userQueryPromises[i] = new Promise( resolve => {
+                this.firebase.getValue("/users/"+conversationManager.partecipants[i]).then((result) => {
+                     if (typeof result.id == "undefined") conversationManager.partecipantsWithoutApp.push(result.key);
+                     resolve();
+                })
+                //TODO: check if result.id OR result.value.id
+            });
+        }
+        return finalPromise = new Promise (resolve => {
+            Promise.all(userQueryPromises).then(() => {
+                //if (userManager.isTesting) return true;
+                if (conversationManager.partecipantsWithoutApp.length != 0){ 
+                    //Should ask user if we want to keep the non-registered receivers and send them an SMS. ONLY ONCE
+                    var options = ["Send SMS to invite friends","Invite friends in other ways","Send message only to registered"]
+                    action({
+                        message: "Ops! Seems that some of your contacts have still not yet installed Audiolog.",
+                        cancelButtonText: "Cancel",
+                        actions: options
+                    }).then(result => {
+                        switch (result) {
+                            case options[0]:
+                                console.log("YEAH! I should send message to everyone!")
+                                break;
+                            case options[1]:
+                                console.log("Ok, let's open share overlay");
+                                break;
+                            case options[2]:{
+                                console.log("KO: Not allowed to send SMS");
+                                //Check user that have or do not have the app. We should modify the partecipants of the conversation
+                                for (let i = 0; i < conversationManager.partecipantsWithoutApp.length; i++) {
+                                    conversationManager.partecipants.pop(conversationManager.partecipantsWithoutApp[i])
+                                }
+                                if (conversationManager.partecipants.length == 0){
+                                    //All the partecipants of the conversation do not have the app
+                                    alert("No partecipant selected has Audiolog installed. Operation cancelled.")
+                                    //TODO: improve, trying to let the user come back
+                                }
+                            }
+                            case "Cancel":{
+                                var userChoice = confirm("Are you really sure to delete your message?");
+                                if (userChoice){
+                                    //rollback: deselect everything
+                                }else{
+                                    //go back to options, without closing
+                                }
+                            }
+                                break;
+                         }
+                         resolve();
+                        });
+                    }
+            
+        })
+        /*
+ Promise.all(userQueryPromises).then(() => {
+            //if (userManager.isTesting) return true;
+            if (conversationManager.partecipantsWithoutApp.length != 0){ 
+                //Should ask user if we want to keep the non-registered receivers and send them an SMS. ONLY ONCE
+                var options = ["Send SMS to invite friends","Invite friends in other ways","Send message only to registered"]
+                action({
+                    message: "Ops! Seems that some of your contacts have still not yet installed Audiolog.",
+                    cancelButtonText: "Cancel",
+                    actions: options
+                }).then(result => {
+                    switch (result) {
+                        case options[0]:
+                            console.log("YEAH! I should send message to everyone!")
+                            break;
+                        case options[1]:
+                            console.log("Ok, let's open share overlay");
+                            break;
+                        case options[2]:{
+                            console.log("KO: Not allowed to send SMS");
+                            //Check user that have or do not have the app. We should modify the partecipants of the conversation
+                            for (let i = 0; i < conversationManager.partecipantsWithoutApp.length; i++) {
+                                conversationManager.partecipants.pop(conversationManager.partecipantsWithoutApp[i])
+                            }
+                            if (conversationManager.partecipants.length == 0){
+                                //All the partecipants of the conversation do not have the app
+                                alert("No partecipant selected has Audiolog installed. Operation cancelled.")
+                                //TODO: improve, trying to let the user come back
+                            }
+                        }
+                        case "Cancel":{
+                            var userChoice = confirm("Are you really sure to delete your message?");
+                            if (userChoice){
+                                //rollback: deselect everything
+                            }else{
+                                //go back to options, without closing
+                            }
+                        }
+                            break;
+                     }
+                    });
+
+
+
+                }
+        
+*/});
+    }
+
+}
    
    module.exports = BackendManager;
    

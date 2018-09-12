@@ -9,8 +9,10 @@ var application = require("application");
 var backendManagerModule = require("./managers/BackendManager.js");
 var navigationManagerModule = require("./managers/NavigationManager.js");
 var userManagerModule = require("./managers/UserManager.js");
+var dataManagerModule = require("./managers/DataManager.js");
 var UIManagerModule = require("./managers/UIManager.js");
 var audioManagerModule = require("./managers/AudioManager.js");
+var conversationManagerModule = require("./managers/ConversationManager.js");
 
 
 backendManager = new backendManagerModule();
@@ -18,7 +20,9 @@ backendManager.initFirebase();
 navigationManager = new navigationManagerModule();
 userManager = new userManagerModule();
 UIManager = new UIManagerModule();
+dataManager = new dataManagerModule();
 audioManager = new audioManagerModule();
+conversationManager = new conversationManagerModule();
 
 
 //application.start({ moduleName: "main-page" });

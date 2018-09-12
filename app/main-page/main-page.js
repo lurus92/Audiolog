@@ -188,16 +188,21 @@ function buildContactList(page){
                             //We're not recording, first tap: select. If contact is already selected 
                             if (!this.selected){
                                 this.backgroundColor = new colorModule.Color("green");
-                                preConversationObj.receivers.push(this.phoneNumber);
+                                preConversationObj.receivers.push(this.phoneNumber); //FIXME: REMOVE PRECONVERSATION OBJ. USE CONVERSATIONMANAGER
+                                conversationManager.addPartecipant(this.phoneNumber);
                                 this.selected = true;
                                 //If the number of selected numbers is more than one, we should visualize the recording overlay
-                                if (preConversationObj.receivers.length > 0) UIManager.showRecordingOverlay(preConversationObj.receivers.length);
+                                //if (preConversationObj.receivers.length > 0) UIManager.showRecordingOverlay(preConversationObj.receivers.length);
+                                if (conversationManager.partecipants.length > 0 ) UIManager.showRecordingOverlay(conversationManager.partecipants.length);
                             }else{
                                 //Deselect item
                                 this.backgroundColor = new colorModule.Color("white");
-                                preConversationObj.receivers.pop(this.phoneNumber);  
-                                if (preConversationObj.receivers.length == 0) UIManager.hideRecordingOverlay();
-                                else  UIManager.showRecordingOverlay(preConversationObj.receivers.length);
+                                //preConversationObj.receivers.pop(this.phoneNumber);  
+                                conversationManager.removePartecipant(this.phoneNumber);
+                               // if (preConversationObj.receivers.length == 0) UIManager.hideRecordingOverlay();
+                                if (conversationManager.partecipants.length == 0) UIManager.hideRecordingOverlay();
+                                else UIManager.showRecordingOverlay(conversationManager.partecipants.length);
+                               // else  UIManager.showRecordingOverlay(preConversationObj.receivers.length);
                                 this.selected = false;                 
                             }
 
