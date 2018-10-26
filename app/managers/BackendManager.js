@@ -1,4 +1,6 @@
 var fs = require("file-system");
+var dialogs = require("ui/dialogs");
+
 
 
 class BackendManager{   
@@ -8,6 +10,9 @@ class BackendManager{
         this.firebase = require("nativescript-plugin-firebase");
     }
 
+    /**
+     * Initialization of firebase connector
+     */
     initFirebase(){
         this.firebase.init({
             // Optionally pass in properties for database, authentication and cloud messaging,
@@ -24,7 +29,10 @@ class BackendManager{
           );
           this.firebaseStatus = "initiated";
     }
-
+    /**
+     * Methods that implements the anonymous login, only for testing puposes
+     * @param  {Function} callback  The function to be executed at the end
+     */
     loginAnonymous(callback){
         this.firebase.login({
             type: firebase.LoginType.ANONYMOUS
@@ -38,7 +46,11 @@ class BackendManager{
               }
           );
     }
-
+    /**
+     * Method that implements the login via phone number (confirmation required)
+     * @param  {String}     number      the phone number of the user in E164 format. TODO: remove this and acquire from UserManager
+     * @param  {Function}   callback    the function to be executed at the end
+     */
     loginPhone(number, callback){
         //TODO: insert validation on Number
         this.firebase.login({
@@ -59,6 +71,11 @@ class BackendManager{
           );
     }
 
+    /**
+     * Method that uploads a profile picture to Firebase Remote Storage
+     * @param  {String}     profilePhotoUrl the path of the image selected in the phone File System
+     * @param  {Function}   callback        the function to be exectued at the end
+     */
     uploadProfPic(profilePhotoUrl, callback){
         // now upload the file with either of the options below:
         this.firebase.storage.uploadFile({
@@ -87,7 +104,8 @@ class BackendManager{
         );
     }
 
-    finaliseRegistration(callback){/*
+    finaliseRegistration(callback){
+            /*
             this.firebase.updateProfile({
               displayName: userManager.name
             }).then(function(){*/
@@ -95,9 +113,10 @@ class BackendManager{
                 this.firebase.setValue("/users/"+this.encodePhone(userManager.phoneNumber),
                 {
                   "name": userManager.name,
-                  "id": userManager.id
+                  "id": userManager.id,
+                  "involvedInConversation": ""
                 }).then(function(){
-                    navigationManager.navigateToMainScreen();
+                    navigationManager.navigateToMainScreen();   //TODO: use callback variable
                 });
             //});
             //TODO: understand why callback are not working!
@@ -178,7 +197,7 @@ class BackendManager{
                 this.firebase.push(
                     '/messages',
                     {
-                      'localPath': remotePath,
+                      'path': remotePath,
                       'timestamp': filename,
                       'sender': senderEncodedNumber,
                       'receiver': receiverEncodedNumber
@@ -224,7 +243,10 @@ class BackendManager{
             var filename = messagePath.split("/")[messagePath.split("/").length - 1].split(".")[0];   //timestamp of the audio
             //TODO: To prevent conflicts, add the uid to the filename
             console.log("filename: "+filename);    
-            var remotePath = "uploads/messages/"+filename+".caf"; //TODO: understand why CAF and not mp3
+            //var remotePath = "uploads/messages/"+conversationID+"/"+filename+".caf"; //TODO: understand why CAF and not mp3
+            //DON'T BE FOOLED: At this time we do not have conversationID (if this is a new conversation)
+            var remotePath = "uploads/messages/"+filename+".caf";
+            
             this.firebase.storage.uploadFile({
                 // the full path of the file in your Firebase storage (folders will be created)
                 remoteFullPath: remotePath,
@@ -240,46 +262,77 @@ class BackendManager{
             }).then( (uploadedFile) => {
                 console.log(JSON.stringify(uploadedFile));
                 console.log("Starting to build record for the message in the db");
-                this.firebase.push(
-                    '/messages',
-                    {
-                    'localPath': remotePath,
-                    'timestamp': filename,
-                    }
-                ).then ( (messageRecord) => {
-                    console.log("starting to build the conversation record");
-                    var messagePrimaryKey = messageRecord.key;
-                    //NOW: If a conversationID is present, I can directly store the message in the conversation
-                    //Otherwise, I should create a new conversation
-
-                    if(!conversationID){
-                        this.firebase.push(
-                            "/conversations",
-                            {
-                                'messages' : messagePrimaryKey,
-                                'users': userManager.id + "|" + conversationManager.stringifyPartecipants()  //TODO: ALL
-                            }
-                        ).then( (result) => {
-                            console.log("new conversation created with id: "+result.key);
-                            UIManager.refreshConversationList();
-                        });
-                    }else{
-                        //Should update messages. First we download it
-                        this.firebase.getValue("/conversations/"+conversationID).then( (result) => {
-                            //Now I should write the new value
-                            this.firebase.setValue("/conversations/"+conversationID,
-                            {
-                                'messages': result.messages + "|" + messagePrimaryKey,
-                                'users' : result.users
-                            }).then((result => {
-                                console.log("pre-existing conversation updated");
-                                UIManager.refreshConversationList();
-                            }))
-                        })
-                        
-                    }
-
-                })
+                //I need the download URL of the file
+                var downloadURL = "not valid";
+                this.firebase.storage.getDownloadUrl({
+                    remoteFullPath: remotePath
+                }).then(downloadURL => {
+                    this.firebase.push(
+                        '/messages',
+                        {
+                        'localPath': remotePath,
+                        'downloadURL': downloadURL,
+                        'timestamp': filename,
+                        'sender' : userManager.encodedPhoneNumber
+                        }
+                    ).then ( (messageRecord) => {
+                        console.log("starting to build the conversation record");
+                        var messagePrimaryKey = messageRecord.key;
+                        //NOW: If a conversationID is present, I can directly store the message in the conversation
+                        //Otherwise, I should create a new conversation
+    
+                        if(!conversationID){
+                            this.firebase.push(
+                                "/conversations",
+                                {
+                                    'messages' : messagePrimaryKey,
+                                    'users': conversationManager.stringifyPartecipants()  //TODO: ALL
+                                }
+                            ).then( (result) => {
+                                var conversationPrimaryKey = result.key;
+                                console.log("new conversation created with id: "+conversationPrimaryKey);
+                                //Should insert here the id of the conversation inside user object.
+                                //Should do this for every user in the conversation
+                                var partecipantsOfConversation = conversationManager.partecipants;
+                                partecipantsOfConversation.push(userManager.encodedPhoneNumber);
+                                var userPromises = [];
+                                for (var i = 0; i < partecipantsOfConversation.length; i++) {
+                                    userPromises[i] = new Promise(resolve => {
+                                        this.firebase.getValue("/users/"+partecipantsOfConversation[i]).then((result) =>{
+                                            console.log(result);
+                                            var newStringToWrite ="";
+                                            if (result.value == null) resolve();
+                                            if (result.value.involvedInConversation == "") newStringToWrite = "" + conversationPrimaryKey;
+                                            else if (result.value.involvedInConversation.indexOf(conversationPrimaryKey) == -1) newStringToWrite = result.value.involvedInConversation + "|"+conversationPrimaryKey;
+    
+                                            if (newStringToWrite != "") this.firebase.update("/users/"+result.key,
+                                                {"involvedInConversation":newStringToWrite}).then(resolve())
+                                        })});
+                                    }
+                                
+                                Promise.all(userPromises).then(() => {
+                                    UIManager.refreshConversationList();
+                                });
+                            });
+                        }else{
+                            //Should update messages. First we download it
+                            this.firebase.getValue("/conversations/"+conversationID).then( (result) => {
+                                //Now I should write the new value
+                                this.firebase.setValue("/conversations/"+conversationID,
+                                {
+                                    'messages': result.messages + "|" + messagePrimaryKey,
+                                    'users' : result.users
+                                }).then((result => {
+                                    console.log("pre-existing conversation updated");
+                                    UIManager.refreshConversationList();
+                                }))
+                            })
+                            
+                        }
+    
+                    });
+                });
+                
         });
     });
     }
@@ -290,6 +343,9 @@ class BackendManager{
      *  @return {Promise}   returnPromise:      the method returns an asyncronous executor.
      *  @var    {Array}     userConversations:  the value returned by the promise when fullfilled. It is an array containing the IDs of conversation where the user is present
      *  //TODO: try to return the conversations already sorted by... something. 
+     * 
+     *  //2TODO:    Is important to insert the the conversation ID inside the user object. This is the only way to 
+     *              retrieve conversation of an user efficiently
      */
     retrieveConversations(){
         var returnPromise = new Promise((resolve, reject) => {
@@ -322,81 +378,82 @@ class BackendManager{
         return returnPromise;        
     }
 
+
+    retrieveConversationsNEW(){
+        return new Promise(resolve => {
+            this.firebase.getValue("/users/"+userManager.encodedPhoneNumber).then( result => {
+                resolve(result.value.involvedInConversation.split("|"));
+            });
+        })
+    }
+
     
     /**
      * Retrieve the messages of a particular conversation
-     * @param   {Array}     conversationId: the ID of conversation to consider
-     * @return  {Promise}   returnPromise: the asyncrounous executor returned by the method
-     * @var     {Array}     timestamps: un unsorted (retured sorted) array of timestamps of the messages inside a conversation
+     * @param   {String}    conversationId      the ID of conversation to consider
+     * @return  {Promise}                       the asyncrounous executor returned by the method
+     * @var     {Array}     playableURLs        the array of audio URLs of the specific conversation 
      */
+
     retrieveMessages(conversationId){
-        var returnPromise = new Promise((resolve, reject) => {
-            var updateCallback = function(){
-                console.log("Message query performed");
-            }
-            backendManager.firebase.query(
-                updateCallback,
-                "/conversations/"+conversationId,
-                {
-                    singleEvent: true,
-                    orderBy: {
-                        type: this.firebase.QueryOrderByType.CHILD,
-                        value: 'since'
-                    }
+        var playableURLs = [];
+        return new Promise (resolve => {
+            //Getting list of messages id from conversation
+            this.firebase.getValue("/conversations/"+conversationId).then(result =>{
+                var messagesIDs = result.value.messages.split("|");
+                //For anyone of this, we should get the URL
+                var promises = [];
+                for(var i=0; i<messagesIDs.length; i++){
+                    promises[i] = this.firebase.getValue("/messages/"+messagesIDs[i]).then(result => {
+                        playableURLs.push(result.value.downloadURL);
+                    });
                 }
-                ).then((result) => {
-                        console.log("Second callback ok");
-                        console.log(result);
-                        //In result.value we have all the messages, with their IDs
-                        var messages = result.value;
-                        //But ID are not useful to us. We need the URLS of the messages
-                        var messageURL = []; //TO DELETE
-                        var messageTS = [];
-                        for(var i in messages){
-                            if(messages[i].fullPath)
-                                messageURL.push(messages[i].fullPath);
-                        }
-                        for(var i in messages){
-                            if(messages[i].timestamp)
-                                messageTS.push(messages[i].timestamp);
-                        }  /*
-                        //We have the timestamp array. We sort it
-                        timestamps.sort();
-                        //We should return a partial path to the message, that is composed by <conversationID>+"|"+filename
-                        var localMessageURI = timestamps.filter((el) => conversationId+el);
-                        console.log(localMessageURI);*/
-                        console.log("finishing promise and ready to return");
-                        resolve(messageTS);
-                });
-        });
-        return returnPromise;  
-    }
-
-    retrieveMessagesURLs(localMessageURI){
-        console.log("starting retrieveMessagesURLs")
-        var globalURL = [];
-        var returnPromise = new Promise((resolve, reject) => {
-        function getURL(localURI, urlArray, istance){
-            console.log("WOW I'VE GONE RECURSIVE!")
-            if (!localURI.length) resolve(urlArray);
-            istance.firebase.getDownloadURL({
-                remoteFullPath: "conversations/"+localURI[0]
-            }).then((url) => {
-                urlArray.push(url);
-                getURL(localURI.slice(1),urlArray,istance);
+                return Promise.all(promises);
+                //Promise.all(promises).then(resolve(playableURLs));
+            }).then(() => {
+                resolve(playableURLs);
             })
-        }
-        getURL(localMessageURI, globalURL, this);
-        return returnPromise;
+        });
+    }
+
+    /**
+     * Retrieve the messages of a particular conversation, considering heap
+     * Heap is a nullable timestamp. Contains the most recent timestamp of the message seen by the user, or it is null.
+     * Thus, we should pass to the AudioManager only more recent conversation
+     * @param   {String}    conversationId      the ID of conversation to consider
+     * @param   {String}    heap                timestamp of the last message seen by the user
+     * @return  {Promise}                       the asyncrounous executor returned by the method
+     * @var     {Array}     playableURLs        the array of audio URLs of the specific conversation 
+     */
+
+    retrieveMessagesNEW(conversationId, heap){
+        if (!heap) heap = 0; 
+        var playableURLs = [];
+        return new Promise (resolve => {
+            //Getting list of messages id from conversation
+            this.firebase.getValue("/conversations/"+conversationId).then(result =>{
+                var messagesIDs = result.value.messages.split("|");
+                //For anyone of this, we should get the URL
+                var promises = [];
+                for(var i=0; i<messagesIDs.length; i++){
+                    promises[i] = this.firebase.getValue("/messages/"+messagesIDs[i]).then(result => {
+                        if (result.value.timestamp > heap)
+                            /*playableURLs.push({
+                                "timestamp": result.value.timestamp,
+                                "url": result.value.downloadURL
+                            });*/
+                            playableURLs.push(result.value.timestamp + "|" + result.value.downloadURL)
+                    });
+                }
+                return Promise.all(promises);
+            }).then(() => {
+                resolve(playableURLs);
+            })
         });
     }
 
 
-/*
-    storeMessageInDB (remoteMessagePath){
 
-    }*/
-    
     /** TODO: Move to USER MANAGER
      * Encode the phone number
      * 
@@ -412,7 +469,14 @@ class BackendManager{
         return CryptoJS.SHA256(phoneNumber, "audiolog").toString();
     }
    
-
+    /**
+     * Understand if a set of users (contained in conversationManager.partecipants) is registered in the app
+     * and adjusts conversationManager.partecipants in order to be send messages according to user desire to invite
+     * friends in the app
+     * @var     userQueryPromises   an array of promises (firebase remote calls), each for user
+     * @returns {Promise}           the promise resolved only when all users have been checked (Promise.all)
+     * 
+     */ 
     checkIfUsersExist(){
         console.log("BackendManager > starting to check if user exist");
         var userQueryPromises = [];
@@ -425,25 +489,27 @@ class BackendManager{
                 //TODO: check if result.id OR result.value.id
             });
         }
-        return finalPromise = new Promise (resolve => {
-            Promise.all(userQueryPromises).then(() => {
+        return Promise.all(userQueryPromises).then(() => {
                 //if (userManager.isTesting) return true;
                 if (conversationManager.partecipantsWithoutApp.length != 0){ 
                     //Should ask user if we want to keep the non-registered receivers and send them an SMS. ONLY ONCE
-                    var options = ["Send SMS to invite friends","Invite friends in other ways","Send message only to registered"]
-                    action({
+                    var options = ["Send SMS to invite friends","Invite friends in other ways","Send message only to registered"];
+                    dialogs.action({
                         message: "Ops! Seems that some of your contacts have still not yet installed Audiolog.",
                         cancelButtonText: "Cancel",
                         actions: options
                     }).then(result => {
                         switch (result) {
                             case options[0]:
-                                console.log("YEAH! I should send message to everyone!")
+                                console.log("YEAH! I should send message to everyone!");
+                                //resolve(true);
                                 break;
                             case options[1]:
                                 console.log("Ok, let's open share overlay");
+                                //resolve(true)
                                 break;
                             case options[2]:{
+                                //TODO: TEST IT MOTHERFUCKER!
                                 console.log("KO: Not allowed to send SMS");
                                 //Check user that have or do not have the app. We should modify the partecipants of the conversation
                                 for (let i = 0; i < conversationManager.partecipantsWithoutApp.length; i++) {
@@ -454,22 +520,28 @@ class BackendManager{
                                     alert("No partecipant selected has Audiolog installed. Operation cancelled.")
                                     //TODO: improve, trying to let the user come back
                                 }
+                                break;
                             }
                             case "Cancel":{
                                 var userChoice = confirm("Are you really sure to delete your message?");
                                 if (userChoice){
                                     //rollback: deselect everything
+                                    //deselect users: easy
+                                    conversationManager.partecipants = [];
+                                    //Deselect users from UI: a little bit more difficult
+
                                 }else{
                                     //go back to options, without closing
+                                    //Should propose again the question
                                 }
                             }
                                 break;
                          }
-                         resolve();
+                         //resolve();
                         });
                     }
             
-        })
+        }).catch( () => console.log("Error in the general promise"));
         /*
  Promise.all(userQueryPromises).then(() => {
             //if (userManager.isTesting) return true;
@@ -516,10 +588,9 @@ class BackendManager{
 
                 }
         
-*/});
+*/
     }
 
 }
    
    module.exports = BackendManager;
-   

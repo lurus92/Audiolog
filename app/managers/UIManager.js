@@ -29,6 +29,7 @@ class UIManager{
         this.density = platform.screen.mainScreen.scale;
         this.bottomExpandedForIPhoneX = false;
         this.filterOpened = false;
+        this.conversationsDisplayed = [];
         /*this.playConversation2 = function(url){
             console.log("Should play message with url: "+url);
             var player = new audio.TNSPlayer();  
@@ -51,7 +52,7 @@ class UIManager{
     }*/
 
     refreshConversationList(){
-        backendManager.retrieveConversations().then((conversationsIDArray) => {
+        backendManager.retrieveConversationsNEW().then((conversationsIDArray) => {
             //In result we have the list of conversation where the user is involved
             console.log("Received result");
             console.log(conversationsIDArray);
@@ -60,41 +61,22 @@ class UIManager{
             var conversationList = view.getViewById(this.page, "conversation-list");
             console.log("prepared");
             for(var i = 0; i<conversationsIDArray.length; i++){
-                console.log("entering in the cycle");
+                //If the conversation is already displayed, I should do nothing
+                if (this.conversationsDisplayed.indexOf(conversationsIDArray[i]) != -1 ) continue;
+                console.log("we have a new conversation");
                 var contactImage = new buttonModule.Button();
                 contactImage.className = "conversation-button";
                 contactImage.conversationId = conversationsIDArray[i];
                 contactImage.heapConversation = null;
                 contactImage.on(gestures.GestureTypes.tap, function (args) {
                     console.log("I should display messages of conversation: "+this.conversationId);
-                    var heap = null; // Identifier of the last message present in the phone
-                    //backendManager.retrieveMessagesURLs(this.conversationId).then((filesArray) => playConversation(filesArray, heap));
-                    /*
-                    backendManager.retrieveMessages().then(function (localMessageURI){
-                        backendManager.retrieveMessageURLs(localMessageURI).then((filesArray) => playConversation(filesArray, heap))
-                    });*/
 
-                    backendManager.retrieveMessages(this.conversationId).then((messageIDs) => {
-                        //TO DO: check with the heap.
-                        for(var i=0; i<messageIDs.length; i++){
-                            //Get downloadable URL of the message
-                            var urlToFetch = '/uploads/messages/'+this.conversationId+'|'+messageIDs[i]+".caf";
-                            backendManager.firebase.storage.getDownloadUrl({
-                                remoteFullPath: urlToFetch
-                            }).then((url) => {
-                                //PLEASE MOVE THIS FUNCTION
-                                console.log("Should play message with url: "+url);
-                                var player = new audio.TNSPlayer();  
-                                var playerOptions = {
-                                    audioFile: url,
-                                    loop: false
-                                };
-                                player.playFromUrl(playerOptions);});
-                        }
-                    }); 
-                    //=> {
+                    //BEHAVIOUR: ON SINGLE CLICK -> hear messages
+                    //ON LONG CLICK -> RECORD NEW MESSAGE
+
+                    backendManager.retrieveMessagesNEW(this.conversationId)
+                        .then(urlsToPlay => audioManager.playConversation(urlsToPlay, this));
                         
-                    //}UIManager.playConversation(messageURLs, heap));
                 }, contactImage);
                 conversationList.addChild(contactImage);
                 
@@ -111,36 +93,6 @@ class UIManager{
         })
     }
 
-
-    //TODO: SHOULD REMOVE FROM HERE AND GO TO RECORDERMANAGER
-    async playConversation(filesArray, heap){
-        console.log("received fileArray"+filesArray);
-        console.log("I should start playing some music now!");
-        var player = new audio.TNSPlayer();  
-        /*
-        function playSingle(localFileArray){
-            if (localFileArray.length == 0) return;
-            const playerOptions = {
-                audioFile: filesArray[0],
-                loop: false
-            };
-            player.playFromUrl(playerOptions).then(playSingle(localFileArray.slice(1)));
-        }
-        */
-
-        // NOT RECURSIVE
-        // function playSingle(localFileArray){
-        for (var i = 0; i < filesArray.length; i++){
-            var playerOptions = {
-                audioFile: filesArray[i],
-                loop: false
-            };
-            await player.playFromUrl(playerOptions);
-        }
-        //}
-        
-       // playSingle(filesArray);
-    }
 
     /**
      * @param  {Object} element: graphical element where the recorder button should be placed. If null, default position

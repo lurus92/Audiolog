@@ -6,7 +6,7 @@
   "nativescript": {
     "id": "com.sampi.audiolog",
     "tns-android": {
-      "version": "4.0.1"
+      "version": "4.2.0"
     },
     "tns-ios": {
       "version": "4.2.0"
@@ -23,7 +23,7 @@
     "nativescript-plugin-firebase": "^6.0.2",
     "nativescript-ssi-imagepicker": "^3.0.13",
     "nativescript-theme-core": "~1.0.4",
-    "tns-core-modules": "~4.0.0"
+    "tns-core-modules": "^4.2.1"
   },
   "devDependencies": {
     "babel-traverse": "^6.20.1",

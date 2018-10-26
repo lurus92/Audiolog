@@ -62,8 +62,13 @@ class AudioManager{
     }
 
     play(){
-        if (this.isRemoteFile) return this.player.playFromURL(this.playerOptions);
+        if (this.isRemoteFile) return this.player.playFromUrl(this.playerOptions);
         return this.player.playFromFile(this.playerOptions);
+    }
+
+    playImmediately(){
+        if (this.isRemoteFile) this.player.playFromUrl(this.playerOptions);
+        else this.player.playFromFile(this.playerOptions);
     }
 
     record(){
@@ -86,6 +91,53 @@ class AudioManager{
             this.isRecording = false;
             console.log("Recording Stopped");
         });
+    }
+
+
+    /**
+     * Function that play an array of files passed via URL as parameters
+     * @param       {Object[]}  urlArray              an array of objects containing two properties, url and timestamp.
+     * @property    {String}    url                   the actual downloadable url of the  message, ready to be played by the player
+     * @property    {Number}    timestamp             the timestamp of the file     
+     * IMPORTANT NOTICE: THE OBJECT urlArray CAN BE NOT SORTED BY TIMESTAMP (as being built asyncronously)
+     * @param       {Button}    conversationButton    the conversation Button is the model of the conversation, merged with the UI. 
+     *                                                The audioManager should update its heapConversation property to the timestamp of the 
+     *                                                last message heard by the user
+     */
+    playConversation(dataArray, conversationButton){
+        console.log("Received the following url Array that I should play");
+        console.log(JSON.stringify(dataArray));
+        //In order to destroy all risk of incorrect matching, dataArray is an Array with element formatted as such
+        // <timestamp>|<downloadURL
+        // First thing, let's split them all
+        var timestamps = [];
+        var downloadURLs = []; 
+        for (let i = 0; i < dataArray.length; i++) {
+            timestamps [i] = dataArray[i].split("|")[0];
+            downloadURLs [i] = dataArray[i].split("|")[1];            
+        }
+        //TODO: sort downloadURLs by timestamps
+
+        /*PLAY THE AUDIO FILES
+        for (let i = 0, p = Promise.resolve(); i < dataArray.length; i++) {
+            p = p.then(_ => new Promise(resolve => {
+                // TO TEST
+                this.initializeWithURL(downloadURLs[i]);
+                this.playImmediately();
+                conversationButton.heapConversation = timestamps[i];
+                //console.log(urlArray[i].url);
+                resolve();
+            }
+            ));
+        }*/
+        for (let i = 0, p = Promise.resolve(); i < dataArray.length; i++) {
+            p = p.then( () => {
+                this.initializeWithURL(downloadURLs[i]);
+            }).then( _ => 
+                this.play()
+            )
+            
+        }
     }
 
 
